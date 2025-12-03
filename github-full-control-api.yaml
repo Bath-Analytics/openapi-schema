@@ -1,0 +1,648 @@
+openapi: 3.1.0
+info:
+  title: GitHub Full Control API
+  description: Complete GitHub API access to monitor, manage, and automate repo operations from a custom GPT.
+  version: 1.0.0
+servers:
+  - url: https://api.github.com
+components:
+  securitySchemes:
+    githubToken:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    GenericResponse:
+      type: object
+      properties: {}
+security:
+  - githubToken: []
+paths:
+  /repos/Bath-Analytics/cflow-control-center:
+    get:
+      operationId: getRepo
+      summary: Get repository information
+      responses:
+        '200':
+          description: Repo info
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericResponse'
+
+  /repos/Bath-Analytics/cflow-control-center/commits:
+    get:
+      operationId: listCommits
+      summary: List commits
+      parameters:
+        - in: query
+          name: sha
+          schema:
+            type: string
+            example: main
+        - in: query
+          name: per_page
+          schema:
+            type: integer
+            default: 5
+      responses:
+        '200':
+          description: Commits
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericResponse'
+
+  /repos/Bath-Analytics/cflow-control-center/branches:
+    get:
+      operationId: listBranches
+      summary: List all branches
+      responses:
+        '200':
+          description: Branches
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericResponse'
+
+  /repos/Bath-Analytics/cflow-control-center/releases:
+    get:
+      operationId: listReleases
+      summary: List releases
+      responses:
+        '200':
+          description: Releases
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericResponse'
+
+  /repos/Bath-Analytics/cflow-control-center/tags:
+    get:
+      operationId: listTags
+      summary: List tags
+      responses:
+        '200':
+          description: Tags
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericResponse'
+
+  /repos/Bath-Analytics/cflow-control-center/deployments:
+    get:
+      operationId: listDeployments
+      summary: List deployments made through GitHub
+      responses:
+        '200':
+          description: Deployments
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericResponse'
+
+  /repos/Bath-Analytics/cflow-control-center/issues:
+    get:
+      operationId: listIssues
+      summary: List issues
+      parameters:
+        - in: query
+          name: state
+          schema:
+            type: string
+            enum: [open, closed, all]
+            default: open
+      responses:
+        '200':
+          description: Issues
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericResponse'
+
+  /repos/Bath-Analytics/cflow-control-center/pulls:
+    get:
+      operationId: listPullRequests
+      summary: List pull requests
+      parameters:
+        - in: query
+          name: state
+          schema:
+            type: string
+            enum: [open, closed, all]
+            default: open
+      responses:
+        '200':
+          description: PRs
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericResponse'
+
+  /repos/Bath-Analytics/cflow-control-center/actions/runs:
+    get:
+      operationId: listWorkflowRuns
+      summary: List workflow runs
+      parameters:
+        - in: query
+          name: per_page
+          schema:
+            type: integer
+            default: 5
+      responses:
+        '200':
+          description: Workflow runs
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericResponse'
+
+  /repos/Bath-Analytics/cflow-control-center/actions/runs/{run_id}/jobs:
+    get:
+      operationId: listWorkflowJobs
+      summary: List jobs in a workflow run
+      parameters:
+        - in: path
+          name: run_id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Workflow jobs
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericResponse'
+
+  /repos/Bath-Analytics/cflow-control-center/actions/jobs/{job_id}/logs:
+    get:
+      operationId: getJobLogs
+      summary: Get job logs
+      parameters:
+        - in: path
+          name: job_id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Job logs
+          content:
+            text/plain:
+              schema:
+                type: string
+
+  /repos/Bath-Analytics/cflow-control-center/contents/{path}:
+    get:
+      operationId: getFileContents
+      summary: Get contents of a file
+      parameters:
+        - in: path
+          name: path
+          required: true
+          schema:
+            type: string
+            example: README.md
+        - in: query
+          name: ref
+          schema:
+            type: string
+            example: main
+      responses:
+        '200':
+          description: File contents
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericResponse'
+
+  /repos/Bath-Analytics/cflow-control-center/commits/{ref}/status:
+    get:
+      operationId: getCommitStatus
+      summary: Get status checks for a commit
+      parameters:
+        - in: path
+          name: ref
+          required: true
+          schema:
+            type: string
+            example: main
+      responses:
+        '200':
+          description: Status checks
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericResponse'
+
+  /repos/Bath-Analytics/cflow-control-center/stats/contributors:
+    get:
+      operationId: getContributors
+      summary: List contributors with commit stats
+      responses:
+        '200':
+          description: Contributors
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericResponse'
+
+  /repos/Bath-Analytics/cflow-control-center/hooks:
+    get:
+      operationId: listWebhooks
+      summary: List webhooks configured on the repo
+      responses:
+        '200':
+          description: Webhooks
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericResponse'
+
+  /repos/Bath-Analytics/cflow-control-center/branches/{branch}:
+    get:
+      operationId: getBranch
+      summary: Get branch info
+      parameters:
+        - in: path
+          name: branch
+          required: true
+          schema:
+            type: string
+            example: main
+      responses:
+        '200':
+          description: Branch info
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericResponse'
+
+  /repos/Bath-Analytics/cflow-control-center/actions/workflows:
+    get:
+      operationId: listWorkflows
+      summary: List all workflows in the repo
+      responses:
+        '200':
+          description: Workflow metadata
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericResponse'
+
+  /repos/Bath-Analytics/cflow-control-center/actions/workflows/{workflow_id}/disable:
+    put:
+      operationId: disableWorkflow
+      summary: Disable a workflow
+      parameters:
+        - in: path
+          name: workflow_id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: Workflow disabled
+
+  /repos/Bath-Analytics/cflow-control-center/actions/workflows/{workflow_id}/enable:
+    put:
+      operationId: enableWorkflow
+      summary: Enable a workflow
+      parameters:
+        - in: path
+          name: workflow_id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: Workflow enabled
+
+  /repos/Bath-Analytics/cflow-control-center/pulls/comments:
+    get:
+      operationId: listPRComments
+      summary: List all pull request review comments
+      responses:
+        '200':
+          description: PR comments
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericResponse'
+
+  /repos/Bath-Analytics/cflow-control-center/pulls/{pull_number}/reviews:
+    get:
+      operationId: listPRReviews
+      summary: List reviews for a specific pull request
+      parameters:
+        - in: path
+          name: pull_number
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Pull request reviews
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericResponse'
+
+  /repos/Bath-Analytics/cflow-control-center/branches/{branch}/protection:
+    get:
+      operationId: getBranchProtection
+      summary: Get branch protection rules
+      parameters:
+        - in: path
+          name: branch
+          required: true
+          schema:
+            type: string
+            example: main
+      responses:
+        '200':
+          description: Protection rules
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericResponse'
+
+  /repos/Bath-Analytics/cflow-control-center/community/profile:
+    get:
+      operationId: getCommunityProfile
+      summary: Get community standards health file status
+      responses:
+        '200':
+          description: Community profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericResponse'
+
+  /repos/Bath-Analytics/cflow-control-center/license:
+    get:
+      operationId: getRepoLicense
+      summary: Get the repo license
+      responses:
+        '200':
+          description: License info
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericResponse'
+
+  /repos/Bath-Analytics/cflow-control-center/readme:
+    get:
+      operationId: getRepoReadme
+      summary: Get the repo README content
+      responses:
+        '200':
+          description: README file
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericResponse'
+
+  /repos/Bath-Analytics/cflow-control-center/traffic/views:
+    get:
+      operationId: getTrafficViews
+      summary: Get traffic view stats
+      responses:
+        '200':
+          description: Traffic views
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericResponse'
+
+  /repos/Bath-Analytics/cflow-control-center/traffic/clones:
+    get:
+      operationId: getTrafficClones
+      summary: Get traffic clone stats
+      responses:
+        '200':
+          description: Traffic clones
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericResponse'
+
+  /repos/Bath-Analytics/cflow-control-center/collaborators:
+    get:
+      operationId: listCollaborators
+      summary: List collaborators on the repo
+      responses:
+        '200':
+          description: Collaborators
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericResponse'
+
+  /repos/Bath-Analytics/cflow-control-center/git/refs:
+    post:
+      operationId: createBranch
+      summary: Create a new branch (ref)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              required: [ref, sha]
+              type: object
+              properties:
+                ref:
+                  type: string
+                  example: refs/heads/new-feature
+                sha:
+                  type: string
+                  example: base commit SHA
+      responses:
+        '201':
+          description: Branch created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericResponse'
+
+  /repos/Bath-Analytics/cflow-control-center/git/refs/heads/{branch}:
+    delete:
+      operationId: deleteBranch
+      summary: Delete a branch
+      parameters:
+        - in: path
+          name: branch
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Branch deleted
+
+    patch:
+      operationId: updateBranch
+      summary: Force move branch to a different commit
+      parameters:
+        - in: path
+          name: branch
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [sha]
+              properties:
+                sha:
+                  type: string
+                force:
+                  type: boolean
+      responses:
+        '200':
+          description: Branch updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericResponse'
+
+  /repos/Bath-Analytics/cflow-control-center/branches/{branch}/protection:
+    put:
+      operationId: protectBranch
+      summary: Protect a branch
+      parameters:
+        - in: path
+          name: branch
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [required_status_checks]
+              properties:
+                required_status_checks:
+                  type: object
+                  properties:
+                    strict:
+                      type: boolean
+                    contexts:
+                      type: array
+                      items:
+                        type: string
+      responses:
+        '200':
+          description: Branch protected
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericResponse'
+
+  /repos/Bath-Analytics/cflow-control-center/pulls/{pull_number}/merge:
+    put:
+      operationId: mergePullRequest
+      summary: Merge a pull request
+      parameters:
+        - in: path
+          name: pull_number
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: PR merged
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericResponse'
+
+  /repos/Bath-Analytics/cflow-control-center/issues:
+    post:
+      operationId: createIssue
+      summary: Create a new issue
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              required: [title]
+              type: object
+              properties:
+                title:
+                  type: string
+                body:
+                  type: string
+      responses:
+        '201':
+          description: Issue created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericResponse'
+
+  /repos/Bath-Analytics/cflow-control-center/actions/runs/{run_id}/rerun:
+    post:
+      operationId: rerunWorkflow
+      summary: Rerun a workflow
+      parameters:
+        - in: path
+          name: run_id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '201':
+          description: Workflow rerun started
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericResponse'
+
+  /repos/Bath-Analytics/cflow-control-center/actions/secrets:
+    get:
+      operationId: listActionSecrets
+      summary: List GitHub Actions secrets for the repo
+      responses:
+        '200':
+          description: Secrets list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericResponse'
+
+  /rate_limit:
+    get:
+      operationId: getRateLimit
+      summary: Get current GitHub API rate limits
+      responses:
+        '200':
+          description: Rate limit status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericResponse'
+
+  /users/{username}:
+    get:
+      operationId: getUserInfo
+      summary: Get public GitHub profile for a user
+      parameters:
+        - in: path
+          name: username
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: User info
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericResponse'
+
