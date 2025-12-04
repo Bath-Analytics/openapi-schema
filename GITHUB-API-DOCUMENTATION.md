@@ -135,12 +135,21 @@ This specification provides complete coverage of the following GitHub REST API c
 
 ## Authentication
 
-The API uses Bearer token authentication (GitHub Personal Access Token). Required scopes:
+The API uses Bearer token authentication with GitHub Personal Access Tokens:
+
+- **Classic Personal Access Token** - Traditional GitHub token with broad scopes
+- **Fine-grained Personal Access Token** - Newer token type with granular permissions
+
+Both token types are opaque bearer tokens (not JWTs) and are passed in the Authorization header.
+
+Required scopes for classic tokens:
 - `repo`: Full control of repositories
 - `admin:repo_hook`: Full control of repository hooks
 - `workflow`: Update GitHub Action workflows
 - `security_events`: Read and write security events
 - `admin:org`: Full control of organizations and teams (for team management)
+
+For fine-grained tokens, grant equivalent repository permissions.
 
 ## HTTP Methods
 

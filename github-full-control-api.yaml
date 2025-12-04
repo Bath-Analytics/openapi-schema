@@ -38,9 +38,10 @@ components:
     githubToken:
       type: http
       scheme: bearer
-      bearerFormat: JWT
+      bearerFormat: token
       description: |
-        GitHub Personal Access Token or Fine-grained token with appropriate scopes.
+        GitHub Personal Access Token (classic) or Fine-grained Personal Access Token.
+        The token is an opaque bearer token (not a JWT).
         Required scopes: repo, admin:repo_hook, workflow, security_events, admin:org
   
   schemas:
@@ -102,6 +103,11 @@ components:
           type: string
         commit:
           type: object
+          properties:
+            sha:
+              type: string
+            url:
+              type: string
         protected:
           type: boolean
     
@@ -112,12 +118,45 @@ components:
           type: string
         commit:
           type: object
+          properties:
+            message:
+              type: string
+            author:
+              type: object
+              properties:
+                name:
+                  type: string
+                email:
+                  type: string
+                date:
+                  type: string
+                  format: date-time
+            committer:
+              type: object
+              properties:
+                name:
+                  type: string
+                email:
+                  type: string
+                date:
+                  type: string
+                  format: date-time
         author:
           type: object
           nullable: true
+          properties:
+            login:
+              type: string
+            id:
+              type: integer
         committer:
           type: object
           nullable: true
+          properties:
+            login:
+              type: string
+            id:
+              type: integer
     
     Issue:
       type: object
