@@ -1,38 +1,123 @@
 openapi: 3.1.0
 info:
   title: Vercel API
-  description: API specification for Vercel REST API.
+  description: API specification for Vercel REST API with full control over projects, deployments, environment variables, domains, webhooks, usage, teams, members, and analytics.
   version: "1.0.0"
 servers:
-  - url: https://api.vercel.com/v1
+  - url: https://api.vercel.com
     description: Vercel API server
 paths:
-  /projects:
+  /v9/projects:
     get:
+      operationId: listProjects
       summary: List all projects
+      description: Retrieve a list of all projects for the authenticated user or team
       security:
-        - bearerAuth: {}
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 20
+          description: Maximum number of projects to return
+        - in: query
+          name: since
+          schema:
+            type: integer
+          description: Timestamp to get projects created after
       responses:
         '200':
           description: A list of projects
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  type: object
-                  properties:
-                    id:
-                      type: string
-                    name:
-                      type: string
-                    createdAt:
-                      type: string
-                      format: date-time
+                type: object
+                properties:
+                  projects:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Project'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
     post:
+      operationId: createProject
       summary: Create a new project
+      description: Create a new project with the specified configuration
       security:
-        - bearerAuth: {}
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+              properties:
+                name:
+                  type: string
+                  description: The name of the project
+                framework:
+                  type: string
+                  description: The framework used for the project
+                  example: nextjs
+                buildCommand:
+                  type: string
+                  description: The build command for the project
+                outputDirectory:
+                  type: string
+                  description: The output directory for the build
+                installCommand:
+                  type: string
+                  description: The install command for dependencies
+                environmentVariables:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/EnvironmentVariable'
+      responses:
+        '201':
+          description: Project created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Project'
+  /v9/projects/{idOrName}:
+    get:
+      operationId: getProject
+      summary: Get a project by ID or name
+      description: Retrieve details of a specific project
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: idOrName
+          required: true
+          schema:
+            type: string
+          description: The project ID or name
+      responses:
+        '200':
+          description: Project details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Project'
+        '404':
+          description: Project not found
+    patch:
+      operationId: updateProject
+      summary: Update a project
+      description: Update project settings and configuration
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: idOrName
+          required: true
+          schema:
+            type: string
+          description: The project ID or name
       requestBody:
         required: true
         content:
@@ -44,80 +129,287 @@ paths:
                   type: string
                 framework:
                   type: string
+                buildCommand:
+                  type: string
+                outputDirectory:
+                  type: string
+                installCommand:
+                  type: string
       responses:
-        '201':
-          description: Project created successfully
-  /deployments:
-    get:
-      summary: List all deployments
+        '200':
+          description: Project updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Project'
+    delete:
+      operationId: deleteProject
+      summary: Delete a project
+      description: Permanently delete a project and all its deployments
       security:
-        - bearerAuth: {}
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: idOrName
+          required: true
+          schema:
+            type: string
+          description: The project ID or name
+      responses:
+        '204':
+          description: Project deleted successfully
+        '404':
+          description: Project not found
+  /v13/deployments:
+    get:
+      operationId: listDeployments
+      summary: List all deployments
+      description: Retrieve a list of all deployments
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 20
+          description: Maximum number of deployments to return
+        - in: query
+          name: projectId
+          schema:
+            type: string
+          description: Filter deployments by project ID
+        - in: query
+          name: state
+          schema:
+            type: string
+            enum: [BUILDING, ERROR, INITIALIZING, QUEUED, READY, CANCELED]
+          description: Filter deployments by state
       responses:
         '200':
           description: A list of deployments
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  type: object
-                  properties:
-                    id:
-                      type: string
-                    state:
-                      type: string
-                    createdAt:
-                      type: string
-                      format: date-time
+                type: object
+                properties:
+                  deployments:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Deployment'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
     post:
+      operationId: createDeployment
       summary: Create a new deployment
+      description: Create a new deployment for a project
       security:
-        - bearerAuth: {}
+        - bearerAuth: []
       requestBody:
         required: true
         content:
           application/json:
             schema:
               type: object
+              required:
+                - name
+                - files
               properties:
-                projectId:
+                name:
                   type: string
-                  example: 'prj_PiNDA1VRbhhwCgJelhkhAOeGtRfB'
+                  description: The project name
                 files:
                   type: array
                   items:
                     type: object
                     properties:
-                      path:
+                      file:
                         type: string
-                      content:
+                        description: The file path
+                      data:
                         type: string
+                        description: Base64 encoded file content
+                target:
+                  type: string
+                  enum: [production, staging, preview]
+                  description: The deployment target
+                projectSettings:
+                  type: object
+                  properties:
+                    framework:
+                      type: string
+                    buildCommand:
+                      type: string
+                    outputDirectory:
+                      type: string
       responses:
         '201':
           description: Deployment created successfully
-  /env:
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Deployment'
+  /v13/deployments/{id}:
     get:
-      summary: List all environment variables
+      operationId: getDeployment
+      summary: Get a deployment by ID
+      description: Retrieve details of a specific deployment
       security:
-        - bearerAuth: {}
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: The deployment ID
+      responses:
+        '200':
+          description: Deployment details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Deployment'
+        '404':
+          description: Deployment not found
+    delete:
+      operationId: deleteDeployment
+      summary: Delete a deployment
+      description: Delete a specific deployment
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: The deployment ID
+      responses:
+        '204':
+          description: Deployment deleted successfully
+        '404':
+          description: Deployment not found
+  /v9/projects/{idOrName}/env:
+    get:
+      operationId: listEnvironmentVariables
+      summary: List environment variables
+      description: List all environment variables for a project
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: idOrName
+          required: true
+          schema:
+            type: string
+          description: The project ID or name
       responses:
         '200':
           description: A list of environment variables
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  type: object
-                  properties:
-                    key:
-                      type: string
-                    value:
-                      type: string
+                type: object
+                properties:
+                  envs:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/EnvironmentVariable'
     post:
-      summary: Create a new environment variable
+      operationId: createEnvironmentVariable
+      summary: Create environment variable
+      description: Create a new environment variable for a project
       security:
-        - bearerAuth: {}
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: idOrName
+          required: true
+          schema:
+            type: string
+          description: The project ID or name
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - key
+                - value
+                - target
+                - type
+              properties:
+                key:
+                  type: string
+                  description: The name of the environment variable
+                value:
+                  type: string
+                  description: The value of the environment variable
+                target:
+                  type: array
+                  items:
+                    type: string
+                    enum: [production, preview, development]
+                  description: The deployment targets
+                type:
+                  type: string
+                  enum: [plain, secret, encrypted]
+                  description: The type of environment variable
+      responses:
+        '201':
+          description: Environment variable created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EnvironmentVariable'
+  /v9/projects/{idOrName}/env/{envId}:
+    get:
+      operationId: getEnvironmentVariable
+      summary: Get environment variable
+      description: Get a specific environment variable
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: idOrName
+          required: true
+          schema:
+            type: string
+          description: The project ID or name
+        - in: path
+          name: envId
+          required: true
+          schema:
+            type: string
+          description: The environment variable ID
+      responses:
+        '200':
+          description: Environment variable details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EnvironmentVariable'
+    patch:
+      operationId: updateEnvironmentVariable
+      summary: Update environment variable
+      description: Update an existing environment variable
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: idOrName
+          required: true
+          schema:
+            type: string
+          description: The project ID or name
+        - in: path
+          name: envId
+          required: true
+          schema:
+            type: string
+          description: The environment variable ID
       requestBody:
         required: true
         content:
@@ -125,38 +417,129 @@ paths:
             schema:
               type: object
               properties:
-                key:
-                  type: string
                 value:
                   type: string
+                target:
+                  type: array
+                  items:
+                    type: string
+                    enum: [production, preview, development]
       responses:
-        '201':
-          description: Environment variable created successfully
-  /domains:
-    get:
-      summary: List all domains
+        '200':
+          description: Environment variable updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EnvironmentVariable'
+    delete:
+      operationId: deleteEnvironmentVariable
+      summary: Delete environment variable
+      description: Delete an environment variable
       security:
-        - bearerAuth: {}
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: idOrName
+          required: true
+          schema:
+            type: string
+          description: The project ID or name
+        - in: path
+          name: envId
+          required: true
+          schema:
+            type: string
+          description: The environment variable ID
+      responses:
+        '204':
+          description: Environment variable deleted successfully
+  /v5/domains:
+    get:
+      operationId: listDomains
+      summary: List all domains
+      description: List all domains for the authenticated user or team
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 20
+          description: Maximum number of domains to return
       responses:
         '200':
           description: A list of domains
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  type: object
-                  properties:
-                    id:
-                      type: string
-                    name:
-                      type: string
-                    verified:
-                      type: boolean
+                type: object
+                properties:
+                  domains:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Domain'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
     post:
+      operationId: createDomain
       summary: Add a new domain
+      description: Add a domain to the authenticated user or team
       security:
-        - bearerAuth: {}
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+              properties:
+                name:
+                  type: string
+                  description: The domain name
+      responses:
+        '201':
+          description: Domain added successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Domain'
+  /v5/domains/{domain}:
+    get:
+      operationId: getDomain
+      summary: Get domain information
+      description: Get information about a specific domain
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: domain
+          required: true
+          schema:
+            type: string
+          description: The domain name
+      responses:
+        '200':
+          description: Domain details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Domain'
+    patch:
+      operationId: updateDomain
+      summary: Update domain
+      description: Update a domain configuration
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: domain
+          required: true
+          schema:
+            type: string
+          description: The domain name
       requestBody:
         required: true
         content:
@@ -164,14 +547,857 @@ paths:
             schema:
               type: object
               properties:
-                name:
+                redirect:
                   type: string
+                  description: Redirect target for the domain
+                redirectStatusCode:
+                  type: integer
+                  description: HTTP status code for redirects
+      responses:
+        '200':
+          description: Domain updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Domain'
+    delete:
+      operationId: deleteDomain
+      summary: Delete a domain
+      description: Remove a domain from the authenticated user or team
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: domain
+          required: true
+          schema:
+            type: string
+          description: The domain name
+      responses:
+        '204':
+          description: Domain deleted successfully
+  /v1/integrations/webhooks:
+    get:
+      operationId: listWebhooks
+      summary: List all webhooks
+      description: List all webhooks for the authenticated user or team
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: A list of webhooks
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Webhook'
+    post:
+      operationId: createWebhook
+      summary: Create a webhook
+      description: Create a new webhook for specific events
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - url
+                - events
+              properties:
+                url:
+                  type: string
+                  description: The webhook URL
+                events:
+                  type: array
+                  items:
+                    type: string
+                    enum: 
+                      - deployment.created
+                      - deployment.succeeded
+                      - deployment.failed
+                      - deployment.canceled
+                      - deployment.ready
+                      - project.created
+                      - project.removed
+                  description: Events to subscribe to
       responses:
         '201':
-          description: Domain added successfully
+          description: Webhook created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Webhook'
+  /v1/integrations/webhooks/{id}:
+    get:
+      operationId: getWebhook
+      summary: Get webhook details
+      description: Get details of a specific webhook
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: The webhook ID
+      responses:
+        '200':
+          description: Webhook details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Webhook'
+    delete:
+      operationId: deleteWebhook
+      summary: Delete a webhook
+      description: Delete a webhook
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: The webhook ID
+      responses:
+        '204':
+          description: Webhook deleted successfully
+  /v1/teams:
+    get:
+      operationId: listTeams
+      summary: List all teams
+      description: List all teams the authenticated user is a member of
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 20
+          description: Maximum number of teams to return
+      responses:
+        '200':
+          description: A list of teams
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  teams:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Team'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+    post:
+      operationId: createTeam
+      summary: Create a team
+      description: Create a new team
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - slug
+              properties:
+                slug:
+                  type: string
+                  description: The team slug (URL-friendly name)
+                name:
+                  type: string
+                  description: The team display name
+      responses:
+        '201':
+          description: Team created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Team'
+  /v1/teams/{teamId}:
+    get:
+      operationId: getTeam
+      summary: Get team information
+      description: Get details of a specific team
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: teamId
+          required: true
+          schema:
+            type: string
+          description: The team ID
+      responses:
+        '200':
+          description: Team details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Team'
+    patch:
+      operationId: updateTeam
+      summary: Update team
+      description: Update team information
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: teamId
+          required: true
+          schema:
+            type: string
+          description: The team ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                slug:
+                  type: string
+                name:
+                  type: string
+                description:
+                  type: string
+      responses:
+        '200':
+          description: Team updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Team'
+    delete:
+      operationId: deleteTeam
+      summary: Delete a team
+      description: Delete a team
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: teamId
+          required: true
+          schema:
+            type: string
+          description: The team ID
+      responses:
+        '204':
+          description: Team deleted successfully
+  /v1/teams/{teamId}/members:
+    get:
+      operationId: listTeamMembers
+      summary: List team members
+      description: List all members of a team
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: teamId
+          required: true
+          schema:
+            type: string
+          description: The team ID
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 20
+          description: Maximum number of members to return
+      responses:
+        '200':
+          description: A list of team members
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  members:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/TeamMember'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+    post:
+      operationId: inviteTeamMember
+      summary: Invite team member
+      description: Invite a new member to the team
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: teamId
+          required: true
+          schema:
+            type: string
+          description: The team ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - role
+              properties:
+                email:
+                  type: string
+                  format: email
+                  description: The email address of the user to invite
+                role:
+                  type: string
+                  enum: [OWNER, MEMBER, VIEWER]
+                  description: The role for the new team member
+      responses:
+        '201':
+          description: Team member invited successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TeamMember'
+  /v1/teams/{teamId}/members/{userId}:
+    get:
+      operationId: getTeamMember
+      summary: Get team member
+      description: Get details of a specific team member
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: teamId
+          required: true
+          schema:
+            type: string
+          description: The team ID
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: string
+          description: The user ID
+      responses:
+        '200':
+          description: Team member details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TeamMember'
+    patch:
+      operationId: updateTeamMember
+      summary: Update team member
+      description: Update a team member's role
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: teamId
+          required: true
+          schema:
+            type: string
+          description: The team ID
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: string
+          description: The user ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - role
+              properties:
+                role:
+                  type: string
+                  enum: [OWNER, MEMBER, VIEWER]
+                  description: The new role for the team member
+      responses:
+        '200':
+          description: Team member updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TeamMember'
+    delete:
+      operationId: removeTeamMember
+      summary: Remove team member
+      description: Remove a member from the team
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: teamId
+          required: true
+          schema:
+            type: string
+          description: The team ID
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: string
+          description: The user ID
+      responses:
+        '204':
+          description: Team member removed successfully
+  /v1/usage:
+    get:
+      operationId: getUsage
+      summary: Get usage information
+      description: Get usage and billing information for the authenticated user or team
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: since
+          schema:
+            type: integer
+          description: Start timestamp for usage period
+        - in: query
+          name: until
+          schema:
+            type: integer
+          description: End timestamp for usage period
+      responses:
+        '200':
+          description: Usage information
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Usage'
+  /v1/analytics:
+    get:
+      operationId: getAnalytics
+      summary: Get analytics data
+      description: Get analytics data for deployments
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: projectId
+          schema:
+            type: string
+          description: Filter analytics by project ID
+        - in: query
+          name: since
+          schema:
+            type: integer
+          description: Start timestamp for analytics period
+        - in: query
+          name: until
+          schema:
+            type: integer
+          description: End timestamp for analytics period
+      responses:
+        '200':
+          description: Analytics data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Analytics'
+  /v1/analytics/bandwidth:
+    get:
+      operationId: getBandwidthAnalytics
+      summary: Get bandwidth analytics
+      description: Get bandwidth usage analytics
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: projectId
+          schema:
+            type: string
+          description: Filter by project ID
+        - in: query
+          name: since
+          schema:
+            type: integer
+          description: Start timestamp
+        - in: query
+          name: until
+          schema:
+            type: integer
+          description: End timestamp
+      responses:
+        '200':
+          description: Bandwidth analytics data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  bandwidth:
+                    type: object
+                    properties:
+                      total:
+                        type: integer
+                        description: Total bandwidth in bytes
+                      series:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            timestamp:
+                              type: integer
+                            value:
+                              type: integer
+  /v1/analytics/requests:
+    get:
+      operationId: getRequestAnalytics
+      summary: Get request analytics
+      description: Get request count analytics
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: projectId
+          schema:
+            type: string
+          description: Filter by project ID
+        - in: query
+          name: since
+          schema:
+            type: integer
+          description: Start timestamp
+        - in: query
+          name: until
+          schema:
+            type: integer
+          description: End timestamp
+      responses:
+        '200':
+          description: Request analytics data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  requests:
+                    type: object
+                    properties:
+                      total:
+                        type: integer
+                        description: Total number of requests
+                      series:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            timestamp:
+                              type: integer
+                            value:
+                              type: integer
 components:
   securitySchemes:
     bearerAuth:
       type: http
       scheme: bearer
       bearerFormat: JWT
+  schemas:
+    Project:
+      type: object
+      properties:
+        id:
+          type: string
+          description: The unique identifier for the project
+        name:
+          type: string
+          description: The name of the project
+        accountId:
+          type: string
+          description: The account ID that owns the project
+        createdAt:
+          type: integer
+          description: Timestamp of when the project was created
+        updatedAt:
+          type: integer
+          description: Timestamp of when the project was last updated
+        framework:
+          type: string
+          description: The framework used for the project
+        buildCommand:
+          type: string
+          description: The build command
+        outputDirectory:
+          type: string
+          description: The output directory for builds
+        installCommand:
+          type: string
+          description: The install command
+        link:
+          type: object
+          properties:
+            type:
+              type: string
+            repo:
+              type: string
+            repoId:
+              type: integer
+            org:
+              type: string
+    Deployment:
+      type: object
+      properties:
+        id:
+          type: string
+          description: The unique identifier for the deployment
+        uid:
+          type: string
+          description: The unique deployment identifier
+        name:
+          type: string
+          description: The deployment name
+        url:
+          type: string
+          description: The deployment URL
+        created:
+          type: integer
+          description: Timestamp of when the deployment was created
+        state:
+          type: string
+          enum: [BUILDING, ERROR, INITIALIZING, QUEUED, READY, CANCELED]
+          description: The current state of the deployment
+        ready:
+          type: integer
+          description: Timestamp of when the deployment became ready
+        target:
+          type: string
+          enum: [production, staging, preview]
+          description: The deployment target environment
+        projectId:
+          type: string
+          description: The project ID this deployment belongs to
+        meta:
+          type: object
+          description: Metadata associated with the deployment
+        creator:
+          type: object
+          properties:
+            uid:
+              type: string
+            username:
+              type: string
+    EnvironmentVariable:
+      type: object
+      properties:
+        id:
+          type: string
+          description: The unique identifier for the environment variable
+        key:
+          type: string
+          description: The name of the environment variable
+        value:
+          type: string
+          description: The value of the environment variable
+        target:
+          type: array
+          items:
+            type: string
+            enum: [production, preview, development]
+          description: The deployment targets for this variable
+        type:
+          type: string
+          enum: [plain, secret, encrypted]
+          description: The type of environment variable
+        createdAt:
+          type: integer
+          description: Timestamp of when the variable was created
+        updatedAt:
+          type: integer
+          description: Timestamp of when the variable was last updated
+    Domain:
+      type: object
+      properties:
+        id:
+          type: string
+          description: The unique identifier for the domain
+        name:
+          type: string
+          description: The domain name
+        verified:
+          type: boolean
+          description: Whether the domain is verified
+        created:
+          type: integer
+          description: Timestamp of when the domain was created
+        expiresAt:
+          type: integer
+          description: Timestamp of when the domain expires
+        boughtAt:
+          type: integer
+          description: Timestamp of when the domain was purchased
+        redirect:
+          type: string
+          description: Redirect target for the domain
+        redirectStatusCode:
+          type: integer
+          description: HTTP status code for redirects
+    Webhook:
+      type: object
+      properties:
+        id:
+          type: string
+          description: The unique identifier for the webhook
+        url:
+          type: string
+          description: The webhook URL
+        events:
+          type: array
+          items:
+            type: string
+          description: Events the webhook is subscribed to
+        createdAt:
+          type: integer
+          description: Timestamp of when the webhook was created
+        updatedAt:
+          type: integer
+          description: Timestamp of when the webhook was last updated
+    Team:
+      type: object
+      properties:
+        id:
+          type: string
+          description: The unique identifier for the team
+        slug:
+          type: string
+          description: The team slug
+        name:
+          type: string
+          description: The team display name
+        createdAt:
+          type: integer
+          description: Timestamp of when the team was created
+        avatar:
+          type: string
+          description: URL to the team avatar
+        description:
+          type: string
+          description: Team description
+    TeamMember:
+      type: object
+      properties:
+        uid:
+          type: string
+          description: The unique identifier for the user
+        username:
+          type: string
+          description: The username
+        email:
+          type: string
+          format: email
+          description: The user email
+        role:
+          type: string
+          enum: [OWNER, MEMBER, VIEWER]
+          description: The user's role in the team
+        createdAt:
+          type: integer
+          description: Timestamp of when the member was added
+        avatar:
+          type: string
+          description: URL to the user avatar
+    Usage:
+      type: object
+      properties:
+        bandwidth:
+          type: object
+          properties:
+            total:
+              type: integer
+              description: Total bandwidth used in bytes
+            limit:
+              type: integer
+              description: Bandwidth limit in bytes
+        builds:
+          type: object
+          properties:
+            total:
+              type: integer
+              description: Total build minutes used
+            limit:
+              type: integer
+              description: Build minutes limit
+        serverlessFunctionExecution:
+          type: object
+          properties:
+            total:
+              type: integer
+              description: Total serverless function execution time
+            limit:
+              type: integer
+              description: Serverless function execution limit
+        period:
+          type: object
+          properties:
+            start:
+              type: integer
+              description: Period start timestamp
+            end:
+              type: integer
+              description: Period end timestamp
+    Analytics:
+      type: object
+      properties:
+        pageviews:
+          type: object
+          properties:
+            total:
+              type: integer
+            series:
+              type: array
+              items:
+                type: object
+                properties:
+                  timestamp:
+                    type: integer
+                  value:
+                    type: integer
+        visitors:
+          type: object
+          properties:
+            total:
+              type: integer
+            series:
+              type: array
+              items:
+                type: object
+                properties:
+                  timestamp:
+                    type: integer
+                  value:
+                    type: integer
+        topPages:
+          type: array
+          items:
+            type: object
+            properties:
+              page:
+                type: string
+              views:
+                type: integer
+    Pagination:
+      type: object
+      properties:
+        count:
+          type: integer
+          description: Total number of items
+        next:
+          type: integer
+          description: Timestamp for next page
+        prev:
+          type: integer
+          description: Timestamp for previous page
